@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate image assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install validators
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pngcheck libxml2-utils
+
+      - name: Validate PNG and SVG files
+        run: |
+          pngcheck -q ./*.png
+          for asset in ./*.svg; do
+            xmllint --nonet --noout "$asset"
+            test "$(xmllint --nonet --xpath 'concat(namespace-uri(/*), " ", local-name(/*))' "$asset")" = 'http://www.w3.org/2000/svg svg'
+          done
